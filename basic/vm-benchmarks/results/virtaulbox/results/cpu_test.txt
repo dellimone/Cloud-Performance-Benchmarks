@@ -1,0 +1,60 @@
+--- Standard CPU stress test ---
+stress-ng: info:  [217251] dispatching hogs: 4 cpu
+stress-ng: info:  [217251] successful run completed in 60.12s (1 min, 0.12 secs)
+stress-ng: info:  [217251] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [217251]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [217251] cpu               45698     60.06    240.05      0.00       760.82       190.37
+
+--- Matrix multiplication CPU test ---
+stress-ng: info:  [217262] dispatching hogs: 4 cpu
+stress-ng: info:  [217262] successful run completed in 60.01s (1 min, 0.01 secs)
+stress-ng: info:  [217262] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [217262]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [217262] cpu               26501     60.01    239.83      0.00       441.64       110.50
+
+--- FFT CPU test ---
+stress-ng: info:  [217270] dispatching hogs: 4 cpu
+stress-ng: info:  [217270] successful run completed in 60.00s (1 min, 0.00 secs)
+stress-ng: info:  [217270] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [217270]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [217270] cpu              272955     60.00    239.81      0.00      4549.21      1138.21
+
+--- Phi CPU test ---
+stress-ng: info:  [217280] dispatching hogs: 4 cpu
+stress-ng: info:  [217280] successful run completed in 60.00s (1 min, 0.00 secs)
+stress-ng: info:  [217280] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [217280]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [217280] cpu           5247824238     60.00    239.80      0.00  87463710.10  21884171.13
+
+--- Sysbench CPU test ---
+sysbench 1.0.18 (using system LuaJIT 2.1.0-beta3)
+
+Running the test with following options:
+Number of threads: 4
+Initializing random number generator from current time
+
+
+Prime numbers limit: 20000
+
+Initializing worker threads...
+
+Threads started!
+
+CPU speed:
+    events per second:  4540.29
+
+General statistics:
+    total time:                          60.0005s
+    total number of events:              272423
+
+Latency (ms):
+         min:                                    0.83
+         avg:                                    0.88
+         max:                                    1.65
+         95th percentile:                        0.95
+         sum:                               239941.38
+
+Threads fairness:
+    events (avg/stddev):           68105.7500/13.03
+    execution time (avg/stddev):   59.9853/0.00
+

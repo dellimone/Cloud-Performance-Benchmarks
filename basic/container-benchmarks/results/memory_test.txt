@@ -1,0 +1,59 @@
+--- VM stress test ---
+stress-ng: info:  [65] dispatching hogs: 4 vm
+stress-ng: info:  [65] successful run completed in 60.03s (1 min, 0.03 secs)
+stress-ng: info:  [65] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [65]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [65] vm              4270672     60.03    227.53     12.38     71141.38     17801.14
+
+--- Malloc stress test ---
+stress-ng: info:  [77] dispatching hogs: 4 malloc
+stress-ng: info:  [77] successful run completed in 60.59s (1 min, 0.59 secs)
+stress-ng: info:  [77] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [77]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [77] malloc          2580907     60.36     10.30    193.70     42760.82     12651.50
+
+--- Bigheap stress test ---
+stress-ng: info:  [110] dispatching hogs: 2 bigheap
+stress-ng: info:  [110] successful run completed in 60.72s (1 min, 0.72 secs)
+stress-ng: info:  [110] stressor       bogo ops real time  usr time  sys time   bogo ops/s   bogo ops/s
+stress-ng: info:  [110]                           (secs)    (secs)    (secs)   (real time) (usr+sys time)
+stress-ng: info:  [110] bigheap          417347     60.69      1.86     73.56      6876.28      5533.64
+
+--- Sysbench memory test ---
+sysbench 1.0.18 (using system LuaJIT 2.1.0-beta3)
+
+Running the test with following options:
+Number of threads: 4
+Initializing random number generator from current time
+
+
+Running memory speed test with the following options:
+  block size: 1024KiB
+  total size: 10240MiB
+  operation: write
+  scope: global
+
+Initializing worker threads...
+
+Threads started!
+
+Total operations: 10240 (60014.39 per second)
+
+10240.00 MiB transferred (60014.39 MiB/sec)
+
+
+General statistics:
+    total time:                          0.1697s
+    total number of events:              10240
+
+Latency (ms):
+         min:                                    0.04
+         avg:                                    0.07
+         max:                                    0.55
+         95th percentile:                        0.08
+         sum:                                  673.30
+
+Threads fairness:
+    events (avg/stddev):           2560.0000/0.00
+    execution time (avg/stddev):   0.1683/0.00
+

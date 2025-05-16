@@ -1,0 +1,13 @@
+[34m--- Bandwidth Test (VETH) ---[0m
+Running iperf bandwidth test from ns1 to 10.0.1.2...
+Starting iperf server in ns2...
+Starting iperf client in ns1...
+------------------------------------------------------------
+Client connecting to 10.0.1.2, TCP port 5001
+TCP window size:  595 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.1.1 port 37696 connected with 10.0.1.2 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-30.0 sec   174 GBytes  49.9 Gbits/sec
+Stopping iperf server in ns2...
+Bandwidth test complete.

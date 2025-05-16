@@ -1,0 +1,390 @@
+---
+- name: Configure NFS and iperf server
+  hosts: server
+  become: yes
+
+  vars:
+    nfs_share_path: "/mnt/nfs_share"
+    allowed_client_ip: "192.168.50.10"
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install iperf server
+      apt:
+        name: iperf
+        state: present
+
+    - name: Create iperf server systemd service file
+      copy:
+        dest: /etc/systemd/system/iperf-server.service
+        content: |
+          [Unit]
+          Description=iPerf Server Daemon
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/iperf --server --daemon
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Reload systemd and start/enable iperf server service
+      systemd_service:
+        name: iperf-server
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Install NFS kernel server
+      apt:
+        name: nfs-kernel-server
+        state: present
+
+    - name: Create NFS share directory
+      file:
+        path: "{{ nfs_share_path }}" # Using the variable here
+        state: directory
+        mode: '0777'
+
+    - name: Add NFS export configuration to /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: "{{ nfs_share_path }} {{ allowed_client_ip }}(rw,sync,no_subtree_check)" # Using variables here
+        create: yes # Create the file if it doesn't exist
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Export NFS shares
+      command: exportfs -a
+      notify: Restart NFS server
+
+    - name: Ensure NFS kernel server is running and enabled
+      systemd:
+        name: nfs-kernel-server
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Restart NFS server
+      systemd:
+        name: nfs-kernel-server
+        state: restarted
+
+
+- name: Install benchmarking tools 
+  hosts: worker
+  become: yes
+
+  tasks:
+    - name: Update apt package list
+      apt:
+        update_cache: yes
+
+    ###########################################
+    # Download benchmarking tools
+    ###########################################
+    - name: Install benchmarking tools
+      apt:
+        name:
+          - stress-ng
+          - sysbench
+          - iozone3
+          - iperf
+          - fio
+          - iputils-ping
+          - vim
+        state: present
+    ###########################################
+    # Copy benchmarking scripts
+    ###########################################
+    - name: Copy benchmarking scripts to the worker VMs
+      copy:
+        src: ../scripts/ # Path to your scripts directory on the Ansible control machine
+        dest: /home/vagrant/scripts/ # Destination path on the worker VMs
+        owner: vagrant # Optional: Set the owner of the copied files
+        group: vagrant # Optional: Set the group of the copied files
+        mode: '0755' # Optional: Set permissions for the copied scripts (e.g., make them executable)
+
+- name: Configure NFS client
+  hosts: worker
+  become: yes
+
+  vars:
+    nfs_server_address: 192.168.50.10 
+    remote_nfs_share: /mnt/nfs_share 
+    local_mount_point: /mnt/nfs_server_share 
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install NFS client package (nfs-common)
+      apt:
+        name: nfs-common
+        state: present
+
+    - name: Create local mount point directory
+      file:
+        path: "{{ local_mount_point }}"
+        state: directory
+        mode: '0755' # Standard directory permissions
+
+    - name: Mount the NFS share and add to /etc/fstab
+      mount:
+        src: "{{ nfs_server_address }}:{{ remote_nfs_share }}"
+        path: "{{ local_mount_point }}"
+        fstype: nfs
+        opts: "defaults,_netdev" # Options including _netdev for network mounts
+        state: mounted # Ensures it's mounted and adds/updates the fstab entry
+
+- name: Install and Configure HPL LINPACK 
+  hosts: worker
+  become: yes
+  vars:
+    # Force installation under the vagrant user's home
+    actual_user: vagrant
+    user_home: "/home/{{ actual_user }}"
+    openblas_version: "v0.3.21"
+    openmpi_version: "4.1.4"
+    hpl_version: "2.3"
+    openblas_dir: "{{ user_home }}/opt/OpenBLAS"
+    openmpi_dir: "{{ user_home }}/opt/OpenMPI"
+    hpl_dir: "{{ user_home }}/hpl"
+    parallel_jobs: 4
+
+  ###########################################
+  # HPL challeng setup
+  ########################################### 
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install build dependencies
+      apt:
+        name:
+          - build-essential
+          - hwloc
+          - libhwloc-dev
+          - libevent-dev
+          - gfortran
+          - git
+          - wget
+        state: present
+
+    - name: Ensure vagrant opt directory exists
+      file:
+        path: "{{ user_home }}/opt"
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: '0755'
+      become_user: vagrant
+
+    ###########################################
+    # Build and install OpenBLAS
+    ###########################################
+
+    - name: Clone OpenBLAS repository
+      git:
+        repo: https://github.com/xianyi/OpenBLAS.git
+        dest: "{{ user_home }}/OpenBLAS"
+        version: "{{ openblas_version }}"
+        update: no
+      become_user: vagrant
+
+    - name: Compile OpenBLAS
+      become_user: vagrant
+      shell: |
+        cd {{ user_home }}/OpenBLAS
+        make -j {{ parallel_jobs }}
+      args:
+        chdir: "{{ user_home }}/OpenBLAS"
+
+    - name: Install OpenBLAS into vagrant opt
+      become_user: vagrant
+      shell: |
+        cd {{ user_home }}/OpenBLAS
+        make PREFIX={{ openblas_dir }} install
+
+    ###########################################
+    # Build and install OpenMPI
+    ###########################################
+
+    - name: Download OpenMPI tarball
+      become_user: vagrant
+      get_url:
+        url: "https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-{{ openmpi_version }}.tar.gz"
+        dest: "{{ user_home }}/openmpi-{{ openmpi_version }}.tar.gz"
+
+    - name: Extract OpenMPI
+      become_user: vagrant
+      unarchive:
+        src: "{{ user_home }}/openmpi-{{ openmpi_version }}.tar.gz"
+        dest: "{{ user_home }}"
+        remote_src: yes
+
+    - name: Configure OpenMPI
+      become_user: vagrant
+      shell: |
+        cd {{ user_home }}/openmpi-{{ openmpi_version }}
+        CFLAGS="-Ofast -march=native" ./configure --prefix={{ openmpi_dir }}
+      args:
+        chdir: "{{ user_home }}/openmpi-{{ openmpi_version }}"
+
+    - name: Compile OpenMPI
+      become_user: vagrant
+      shell: |
+        cd {{ user_home }}/openmpi-{{ openmpi_version }}
+        make -j {{ parallel_jobs }}
+      args:
+        chdir: "{{ user_home }}/openmpi-{{ openmpi_version }}"
+
+    - name: Install OpenMPI into vagrant opt
+      become_user: vagrant
+      shell: |
+        cd {{ user_home }}/openmpi-{{ openmpi_version }}
+        make install
+
+    - name: Add OpenMPI env to vagrant .bashrc
+      become_user: vagrant
+      lineinfile:
+        path: "{{ user_home }}/.bashrc"
+        create: yes
+        line: "{{ item }}"
+        state: present
+      with_items:
+        - 'export MPI_HOME={{ openmpi_dir }}'
+        - 'export PATH=$MPI_HOME/bin:$PATH'
+        - 'export LD_LIBRARY_PATH=$MPI_HOME/lib:$LD_LIBRARY_PATH'
+
+    ###########################################
+    # Build and install HPL
+    ###########################################
+
+    # HPL Installation
+    - name: Download HPL source
+      become_user: vagrant
+      get_url:
+        url: "https://netlib.org/benchmark/hpl/hpl-{{ hpl_version }}.tar.gz"
+        dest: "{{ user_home }}/hpl-{{ hpl_version }}.tar.gz"
+
+    - name: Extract HPL
+      become_user: vagrant
+      unarchive:
+        src: "{{ user_home }}/hpl-{{ hpl_version }}.tar.gz"
+        dest: "{{ user_home }}"
+        remote_src: yes
+
+    - name: Rename HPL directory
+      become_user: vagrant
+      shell: |
+        if [ -d "{{ hpl_dir }}" ]; then rm -rf {{ hpl_dir }}; fi
+        mv {{ user_home }}/hpl-{{ hpl_version }} {{ hpl_dir }}
+
+    - name: Create generic Makefile
+      become_user: vagrant
+      shell: |
+        cd {{ hpl_dir }}/setup
+        sh make_generic
+        cp Make.UNKNOWN ../Make.linux
+
+    - name: Configure HPL Makefile
+      become_user: vagrant
+      copy:
+        dest: "{{ hpl_dir }}/Make.linux"
+        content: |
+          # HPL Makefile for {{ ansible_hostname }} (vagrant)
+          SHELL        = /bin/sh
+          CD           = cd
+          CP           = cp
+          LN_S         = ln -s
+          MKDIR        = mkdir
+          RM           = /bin/rm -f
+          TOUCH        = touch
+          ARCH         = linux
+          TOPdir       = $(HOME)/hpl
+          INCdir       = $(TOPdir)/include
+          BINdir       = $(TOPdir)/bin/$(ARCH)
+          LIBdir       = $(TOPdir)/lib/$(ARCH)
+          HPLlib       = $(LIBdir)/libhpl.a
+
+          # MPI
+          MPdir        = {{ openmpi_dir }}
+          MPinc        = -I$(MPdir)/include
+          MPlib        = $(MPdir)/lib/libmpi.so
+
+          # Linear Algebra
+          LAdir        = {{ openblas_dir }}
+          LAinc        =
+          LAlib        = $(LAdir)/lib/libopenblas.a
+
+          F2CDEFS      = -DAdd_ -DF77_INTEGER=int -DStringSunStyle
+          HPL_INCLUDES = -I$(INCdir) -I$(INCdir)/$(ARCH) $(LAinc) $(MPinc)
+          HPL_LIBS     = $(HPLlib) $(LAlib) $(MPlib) -lm
+
+          # Compiler settings
+          HPL_DEFS     = $(F2CDEFS) $(HPL_INCLUDES)
+          CC           = mpicc
+          CCNOOPT      = $(HPL_DEFS)
+          CCFLAGS      = $(HPL_DEFS) -fomit-frame-pointer -O3 -funroll-loops -W -Wall
+          LINKER       = mpif77
+          LINKFLAGS    = $(CCFLAGS)
+          ARCHIVER     = ar
+          ARFLAGS      = r
+          RANLIB       = echo
+
+    - name: Compile HPL
+      become_user: vagrant
+      shell: |
+        export MPI_HOME={{ openmpi_dir }}
+        export PATH=$MPI_HOME/bin:$PATH
+        export LD_LIBRARY_PATH=$MPI_HOME/lib:$LD_LIBRARY_PATH
+        cd {{ hpl_dir }}
+        make arch=linux
+      args:
+        chdir: "{{ hpl_dir }}"
+      register: compile_result
+
+    - name: Verify HPL binary exists
+      stat:
+        path: "{{ hpl_dir }}/bin/linux/xhpl"
+      register: hpl_binary
+
+    - name: Ensure vagrant owns installation directories
+      file:
+        path: "{{ item }}"
+        owner: vagrant
+        group: vagrant
+        recurse: yes
+      loop:
+        - "{{ openblas_dir }}"
+        - "{{ openmpi_dir }}"
+        - "{{ hpl_dir }}"
+
+
+    - name: Copy a HPL.dat in to the VM
+      copy:
+        src: ../hpl/HPL.dat
+        dest: /home/vagrant/hpl/bin/linux/HPL.dat
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+      
+    - name: Show completion message
+      debug:
+        msg:
+          - "HPL LINPACK has been successfully compiled for user 'vagrant'."
+          - "The binary is located at: {{ hpl_dir }}/bin/linux/xhpl"
+          - "To use OpenMPI and OpenBLAS, open a new terminal or run 'source ~/.bashrc' as vagrant"
+      when: hpl_binary.stat.exists

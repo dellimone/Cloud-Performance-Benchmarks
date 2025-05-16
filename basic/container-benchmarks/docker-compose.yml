@@ -1,0 +1,44 @@
+services:
+  iperf-server:
+    image: iperf-server 
+    container_name: iperf-server
+    volumes:
+      - ./results:/benchmark/results
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - bm-network
+
+  base-test:
+    image: base-test
+    container_name: base-test
+    volumes:
+      - ./results:/benchmark/results
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+    networks:
+      - bm-network
+
+  hpl-test:
+    image: hpl-test
+    container_name: hpl-test
+    volumes:
+      - ./results:/benchmark/results
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+    networks:
+      - bm-network
+
+networks:
+  bm-network:
+    driver: bridge
+

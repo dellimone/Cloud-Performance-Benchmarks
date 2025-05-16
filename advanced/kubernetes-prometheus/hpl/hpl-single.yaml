@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hpl-benchmarks
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hpl-benchmark
+  namespace: hpl-benchmarks
+spec:
+  restartPolicy: Never
+  containers:
+    - name: hpl
+      image: hpl-benchmark:latest
+      imagePullPolicy: Never
+      resources:
+        requests:
+          cpu: "3"
+          memory: "3Gi"
+        limits:
+          cpu: "3"
+          memory: "3Gi"
+      volumeMounts:
+        - name: hpl-config-volume
+          mountPath: /etc/hpl-config
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          cp /etc/hpl-config/HPL.dat .;
+          mpirun -np 3 ./xhpl
+  volumes:
+    - name: hpl-config-volume
+      configMap:
+        name: hpl-config

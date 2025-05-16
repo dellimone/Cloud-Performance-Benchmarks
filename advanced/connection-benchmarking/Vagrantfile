@@ -1,0 +1,55 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# --- Configuration Variables ---
+VAGRANT_BOX = "generic/ubuntu2004"
+VM_MEMORY = 4096
+VM_CPUS = 4
+HOSTNAME = "vm"
+NODE_IP = "192.168.50.10"
+
+# --- Vagrant Configuration ---
+Vagrant.configure("2") do |config|
+  config.vm.box = VAGRANT_BOX
+
+  # --- Provider Configuration (libvirt) ---
+  config.vm.provider "libvirt" do |lv|
+    lv.memory = VM_MEMORY
+    lv.cpus = VM_CPUS
+    lv.qemu_use_session = false # Use system session
+  end
+
+  # --- Define Machines ---
+  config.vm.define HOSTNAME do |node|
+    node.vm.hostname = HOSTNAME
+    node.vm.network "private_network", ip: NODE_IP
+
+    # --- Provisioning Steps ---
+    # Update system packages, upgrade installed packages, and install iperf
+    node.vm.provision "shell", name: "system_setup_and_iperf", inline: <<-SHELL
+      echo "--- Running System Update, Upgrade, and Installing iperf ---"
+      sudo apt update -y > /dev/null 2>&1
+      # Upgrade installed packages (optional)
+      # sudo apt upgrade -y
+      # Install iperf
+      sudo apt install -y iperf
+      echo "--- System setup complete ---"
+    SHELL
+
+    # Copy the benchmark scripts from host to guest
+    node.vm.provision "file",
+                     source: "scripts",
+                     destination: "/home/vagrant/"
+
+
+    # Set executable permissions for the copied scripts
+    node.vm.provision "shell", name: "set_script_permissions", inline: <<-SHELL
+      echo "--- Setting script permissions ---"
+      sudo chmod +x /home/vagrant/scripts/setup/*.sh 2>/dev/null || true
+      sudo chmod +x /home/vagrant/scripts/tests/*.sh 2>/dev/null || true
+      sudo chmod +x /home/vagrant/scripts/run_test.sh
+      echo "--- Permissions set ---"
+    SHELL
+
+  end
+end

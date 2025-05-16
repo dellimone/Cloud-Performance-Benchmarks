@@ -1,0 +1,39 @@
+VAGRANT_BOX = "generic/ubuntu2004"
+VM_MEMORY = 4096
+VM_CPUS = 4
+
+servers = [
+  { :hostname => "kube-master", :ip => "192.168.50.10" },
+  { :hostname => "kube-01", :ip => "192.168.50.11" },
+  { :hostname => "kube-02", :ip => "192.168.50.12" },
+]
+
+Vagrant.configure("2") do |config|
+    config.vm.box = VAGRANT_BOX
+
+    config.vm.provider "libvirt" do |lv|
+        lv.memory = VM_MEMORY
+        lv.cpus = VM_CPUS
+        lv.qemu_use_session = false
+    end
+
+    # Define the main Ansible provisioner block
+    config.vm.provision "ansible" do |ansible|
+        ansible.playbook = "kubernetes-setup/k8s-playbook.yaml"
+
+        # Define Ansible groups
+        ansible.groups = {
+            "control" => ["kube-master"],
+            "workers" => servers.select { |s| s[:hostname] != "kube-master" }.map { |s| s[:hostname] },
+        }
+    end
+
+    # Define individual machines
+    servers.each do |conf|
+        config.vm.define conf[:hostname] do |node|
+            node.vm.hostname = conf[:hostname]
+            node.vm.network "private_network", ip:conf[:ip]
+        end
+    end
+
+end

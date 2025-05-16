@@ -1,0 +1,36 @@
+[34m--- Latency Test (Bridge) ---[0m
+Running ping latency test from ns1 to 10.0.2.2 (10 packets)...
+PING 10.0.2.2 (10.0.2.2) 56(84) bytes of data.
+64 bytes from 10.0.2.2: icmp_seq=1 ttl=64 time=0.018 ms
+64 bytes from 10.0.2.2: icmp_seq=2 ttl=64 time=0.082 ms
+64 bytes from 10.0.2.2: icmp_seq=3 ttl=64 time=0.083 ms
+64 bytes from 10.0.2.2: icmp_seq=4 ttl=64 time=0.108 ms
+64 bytes from 10.0.2.2: icmp_seq=5 ttl=64 time=0.068 ms
+64 bytes from 10.0.2.2: icmp_seq=6 ttl=64 time=0.070 ms
+64 bytes from 10.0.2.2: icmp_seq=7 ttl=64 time=0.041 ms
+64 bytes from 10.0.2.2: icmp_seq=8 ttl=64 time=0.040 ms
+64 bytes from 10.0.2.2: icmp_seq=9 ttl=64 time=0.082 ms
+64 bytes from 10.0.2.2: icmp_seq=10 ttl=64 time=0.083 ms
+
+--- 10.0.2.2 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 1834ms
+rtt min/avg/max/mdev = 0.018/0.067/0.108/0.025 ms
+Latency test complete.
+[34m--- Latency Test (Bridge) ---[0m
+Running ping latency test from ns1 to 10.0.2.2 (10 packets)...
+PING 10.0.2.2 (10.0.2.2) 56(84) bytes of data.
+64 bytes from 10.0.2.2: icmp_seq=1 ttl=64 time=0.017 ms
+64 bytes from 10.0.2.2: icmp_seq=2 ttl=64 time=0.087 ms
+64 bytes from 10.0.2.2: icmp_seq=3 ttl=64 time=0.073 ms
+64 bytes from 10.0.2.2: icmp_seq=4 ttl=64 time=0.108 ms
+64 bytes from 10.0.2.2: icmp_seq=5 ttl=64 time=0.072 ms
+64 bytes from 10.0.2.2: icmp_seq=6 ttl=64 time=0.063 ms
+64 bytes from 10.0.2.2: icmp_seq=7 ttl=64 time=0.130 ms
+64 bytes from 10.0.2.2: icmp_seq=8 ttl=64 time=0.073 ms
+64 bytes from 10.0.2.2: icmp_seq=9 ttl=64 time=0.033 ms
+64 bytes from 10.0.2.2: icmp_seq=10 ttl=64 time=0.112 ms
+
+--- 10.0.2.2 ping statistics ---
+10 packets transmitted, 10 received, 0% packet loss, time 1833ms
+rtt min/avg/max/mdev = 0.017/0.076/0.130/0.033 ms
+Latency test complete.
